@@ -1,7 +1,10 @@
-import { Button } from "./components/ui/button";
+import Dashboard from "./components/dashboard";
+import { DashboardProvider } from "./context";
 
-const App = () => {
-  return <Button>Hello</Button>;
-};
-
-export default App;
+export default function App() {
+  return (
+    <DashboardProvider>
+      <Dashboard />
+    </DashboardProvider>
+  );
+}
