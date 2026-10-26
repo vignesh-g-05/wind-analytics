@@ -1,16 +1,16 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useReducer,
+  type Dispatch,
   type PropsWithChildren,
 } from "react";
 
 import type { Filters, RequestStatus, WindApiResponse } from "./types";
 
 import { getWindAnalytics } from "./api/analytics";
-import { MAX_DATE, MIN_DATE } from "./constants";
-
-const DEMO_DATA = getWindAnalytics();
+import { DEFAULT_END_DATE, MIN_DATE } from "./constants";
 
 type DashboardState = {
   status: RequestStatus;
@@ -22,25 +22,34 @@ type DashboardState = {
 };
 
 type DashboardAction =
-  | { type: "UPDATE_FILTER"; field: keyof Filters; value: string }
+  | {
+      type: "UPDATE_FILTER";
+      field: keyof Filters;
+      value: string;
+    }
   | { type: "VALIDATION_ERROR"; message: string }
   | { type: "APPLY_FILTERS"; filters: Filters }
   | { type: "REQUEST_STARTED" }
   | { type: "REQUEST_SUCCEEDED"; data: WindApiResponse }
   | { type: "REQUEST_FAILED"; message: string };
 
+type DashboardContextValue = {
+  state: DashboardState;
+  dispatch: Dispatch<DashboardAction>;
+};
+
 const initialFilters: Filters = {
-  cutoff: "22:30",
-  endDate: MAX_DATE,
+  cutoff: "11:30",
+  endDate: DEFAULT_END_DATE,
   startDate: MIN_DATE,
 };
 
 const initialState: DashboardState = {
   appliedFilters: initialFilters,
-  data: DEMO_DATA,
+  data: null,
   draftFilters: initialFilters,
   error: null,
-  status: "success",
+  status: "loading",
   validationError: null,
 };
 
@@ -69,6 +78,7 @@ function dashboardReducer(
       return {
         ...state,
         appliedFilters: action.filters,
+        error: null,
         validationError: null,
       };
 
@@ -99,15 +109,47 @@ function dashboardReducer(
   }
 }
 
-type DashboardContextValue = {
-  state: DashboardState;
-  dispatch: React.Dispatch<DashboardAction>;
-};
-
 const DashboardContext = createContext<DashboardContextValue | null>(null);
 
 export function DashboardProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(dashboardReducer, initialState);
+  const { cutoff, endDate, startDate } = state.appliedFilters;
+
+  useEffect(() => {
+    let active = true;
+
+    async function fetchAnalytics() {
+      dispatch({ type: "REQUEST_STARTED" });
+
+      try {
+        const data = await getWindAnalytics({
+          cutoffTime: cutoff.length === 5 ? `${cutoff}:00` : cutoff,
+          endDate,
+          startDate,
+        });
+
+        if (active) {
+          dispatch({ data, type: "REQUEST_SUCCEEDED" });
+        }
+      } catch (error) {
+        if (active) {
+          dispatch({
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to load wind analytics.",
+            type: "REQUEST_FAILED",
+          });
+        }
+      }
+    }
+
+    void fetchAnalytics();
+
+    return () => {
+      active = false;
+    };
+  }, [startDate, endDate, cutoff]);
 
   return (
     <DashboardContext.Provider value={{ dispatch, state }}>

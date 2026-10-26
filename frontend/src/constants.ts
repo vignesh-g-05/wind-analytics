@@ -1,4 +1,5 @@
 export const MIN_DATE = "2026-01-01";
+export const DEFAULT_END_DATE = "2026-01-05";
 export const MAX_DATE = "2026-01-31";
 
 export const CUTOFF_OPTIONS = [
