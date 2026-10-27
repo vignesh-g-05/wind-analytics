@@ -68,7 +68,7 @@ const GenerationTooltip = ({ active, payload }: GenerationTooltipProps) => {
   return (
     <div className="border-border bg-popover text-popover-foreground min-w-52 space-y-3 rounded-lg border p-3 shadow-md">
       <p className="text-muted-foreground text-xs font-medium">
-        {formatDeliveryTime(point.startTime)} UTC
+        {formatDeliveryTime(point.startTime)}
       </p>
 
       <div className="space-y-2">
